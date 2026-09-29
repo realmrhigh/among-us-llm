@@ -17,7 +17,7 @@ using Impostor.Server.Net.State;
 
 namespace Impostor.Server.Net.Inner.Objects.ShipStatus
 {
-    internal abstract class InnerShipStatus : InnerNetObject, IInnerShipStatus
+    internal abstract partial class InnerShipStatus : InnerNetObject, IInnerShipStatus
     {
         private readonly Dictionary<SystemTypes, ISystemType> _systems = new Dictionary<SystemTypes, ISystemType>();
 

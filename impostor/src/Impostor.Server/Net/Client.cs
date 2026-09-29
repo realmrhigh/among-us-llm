@@ -43,6 +43,14 @@ namespace Impostor.Server.Net
                 return false;
             }
 
+            // Bots run inside the server. Their mistakes (for example two impostor bots picking the same victim)
+            // are dropped and logged instead of getting them banned from their own game.
+            if (Connection is Impostor.Server.LlmBots.BotConnection { ExemptFromAntiCheat: true })
+            {
+                _logger.LogWarning("Bot {Name} ({Id}) sent something the anti cheat rejects, dropping it: [{Context}-{Category}] {Message}", Name, Id, context.Name, category, message);
+                return true;
+            }
+
             if (Player != null && Player.Game.ModGuid != null)
             {
                 return false;

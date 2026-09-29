@@ -26,7 +26,7 @@
     "PacketSizeLimit": 1203
   },
   "Timeout": {
-    "SpawnTimeout": 2500,
+    "SpawnTimeout": 6000,
     "ConnectionTimeout": 2500
   },
   "Compatibility": {
@@ -37,5 +37,21 @@
   "Debug": {
     "GameRecorderEnabled": false,
     "GameRecorderPath": ""
+  },
+  "LlmBots": {
+    "Enabled": true,
+    "BrainMode": "Auto",
+    "MaxRequestsPerMinute": 16,
+    "ChatCommands": true,
+    "MaxBots": 12,
+    "WriteTranscripts": true
+  },
+  "Serilog": {
+    "MinimumLevel": {
+      "Override": {
+        "Agent": "Warning",
+        "Bot": "Warning"
+      }
+    }
   }
 }

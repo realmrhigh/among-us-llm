@@ -15,6 +15,7 @@ using Impostor.Api.Utils;
 using Impostor.Hazel.Extensions;
 using Impostor.Server.Events;
 using Impostor.Server.Http;
+using Impostor.Server.LlmBots;
 using Impostor.Server.Net;
 using Impostor.Server.Net.Custom;
 using Impostor.Server.Net.Factories;
@@ -73,7 +74,7 @@ namespace Impostor.Server
             return configurationBuilder.Build();
         }
 
-        private static IHostBuilder CreateHostBuilder(string[] args)
+        internal static IHostBuilder CreateHostBuilder(string[] args)
         {
             var configuration = CreateConfiguration(args);
             var pluginConfig = configuration.GetSection("PluginLoader")
@@ -108,6 +109,7 @@ namespace Impostor.Server
                     services.Configure<ServerConfig>(host.Configuration.GetSection(ServerConfig.Section));
                     services.Configure<TimeoutConfig>(host.Configuration.GetSection(TimeoutConfig.Section));
                     services.Configure<HttpServerConfig>(host.Configuration.GetSection(HttpServerConfig.Section));
+                    services.Configure<LlmBotsConfig>(host.Configuration.GetSection(LlmBotsConfig.Section));
 
                     services.AddSingleton<ICompatibilityManager, CompatibilityManager>();
                     services.AddSingleton<ClientManager>();
@@ -145,6 +147,7 @@ namespace Impostor.Server
                     services.AddSingleton<IEventManager, EventManager>();
                     services.AddSingleton<Matchmaker>();
                     services.AddHostedService<MatchmakerService>();
+                    services.AddLlmBots();
                 })
                 .UseSerilog((context, loggerConfiguration) =>
                 {
@@ -224,6 +227,7 @@ namespace Impostor.Server
                         app.UseEndpoints(endpoints =>
                         {
                             endpoints.MapControllers();
+                            endpoints.MapLlmBots();
                         });
                     });
 

@@ -1,0 +1,11 @@
+# Line endings: text files are stored with LF and checked out with the platform's native ending,
+# except scripts that only work with one style.
+* text=auto
+
+*.sh  text eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+*.ico binary
+*.png binary

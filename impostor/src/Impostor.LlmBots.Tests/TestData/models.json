@@ -1,0 +1,290 @@
+{
+ "data": [
+  {
+   "id": "stealth/space-bunny-alpha",
+   "context_length": 1000000,
+   "architecture": {
+    "modality": "text+image+video->text"
+   },
+   "pricing": {
+    "prompt": "0",
+    "completion": "0"
+   }
+  },
+  {
+   "id": "inclusionai/ling-3.0-flash-sante:free",
+   "context_length": 262144,
+   "architecture": {
+    "modality": "text->text"
+   },
+   "pricing": {
+    "prompt": "0",
+    "completion": "0"
+   }
+  },
+  {
+   "id": "qwen/qwen3.8-27b:free",
+   "context_length": 262144,
+   "architecture": {
+    "modality": "text+image+video->text"
+   },
+   "pricing": {
+    "prompt": "0",
+    "completion": "0"
+   }
+  },
+  {
+   "id": "dots-studio/dots-3-note-preview:free",
+   "context_length": 512000,
+   "architecture": {
+    "modality": "text+image->text"
+   },
+   "pricing": {
+    "prompt": "0",
+    "completion": "0"
+   }
+  },
+  {
+   "id": "liquid/lfm-2.5-2.6b:free",
+   "context_length": 65536,
+   "architecture": {
+    "modality": "text->text"
+   },
+   "pricing": {
+    "prompt": "0",
+    "completion": "0"
+   }
+  },
+  {
+   "id": "nvidia/nemotron-3.5-lightning:free",
+   "context_length": 1000000,
+   "architecture": {
+    "modality": "text->text"
+   },
+   "pricing": {
+    "prompt": "0",
+    "completion": "0"
+   }
+  },
+  {
+   "id": "thinkingmachines/inkling-small:free",
+   "context_length": 1048576,
+   "architecture": {
+    "modality": "text+image+audio->text"
+   },
+   "pricing": {
+    "prompt": "0",
+    "completion": "0"
+   }
+  },
+  {
+   "id": "poolside/laguna-s-2.1:free",
+   "context_length": 262144,
+   "architecture": {
+    "modality": "text->text"
+   },
+   "pricing": {
+    "prompt": "0",
+    "completion": "0"
+   }
+  },
+  {
+   "id": "thinkingmachines/inkling:free",
+   "context_length": 1048576,
+   "architecture": {
+    "modality": "text+image+audio->text"
+   },
+   "pricing": {
+    "prompt": "0",
+    "completion": "0"
+   }
+  },
+  {
+   "id": "poolside/laguna-xs-2.1:free",
+   "context_length": 262144,
+   "architecture": {
+    "modality": "text->text"
+   },
+   "pricing": {
+    "prompt": "0",
+    "completion": "0"
+   }
+  },
+  {
+   "id": "cohere/north-mini-code:free",
+   "context_length": 256000,
+   "architecture": {
+    "modality": "text->text"
+   },
+   "pricing": {
+    "prompt": "0",
+    "completion": "0"
+   }
+  },
+  {
+   "id": "nvidia/nemotron-3.5-content-safety:free",
+   "context_length": 128000,
+   "architecture": {
+    "modality": "text+image->text"
+   },
+   "pricing": {
+    "prompt": "0",
+    "completion": "0"
+   }
+  },
+  {
+   "id": "nvidia/nemotron-3-ultra-550b-a55b:free",
+   "context_length": 1000000,
+   "architecture": {
+    "modality": "text->text"
+   },
+   "pricing": {
+    "prompt": "0",
+    "completion": "0"
+   }
+  },
+  {
+   "id": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+   "context_length": 256000,
+   "architecture": {
+    "modality": "text+image+audio+video->text"
+   },
+   "pricing": {
+    "prompt": "0",
+    "completion": "0"
+   }
+  },
+  {
+   "id": "google/gemma-4-26b-a4b-it:free",
+   "context_length": 262144,
+   "architecture": {
+    "modality": "text+image+video->text"
+   },
+   "pricing": {
+    "prompt": "0",
+    "completion": "0"
+   }
+  },
+  {
+   "id": "google/gemma-4-31b-it:free",
+   "context_length": 262144,
+   "architecture": {
+    "modality": "text+image+video->text"
+   },
+   "pricing": {
+    "prompt": "0",
+    "completion": "0"
+   }
+  },
+  {
+   "id": "google/lyria-3-pro-preview",
+   "context_length": 1048576,
+   "architecture": {
+    "modality": "text+image->text+audio"
+   },
+   "pricing": {
+    "prompt": "0",
+    "completion": "0"
+   }
+  },
+  {
+   "id": "google/lyria-3-clip-preview",
+   "context_length": 1048576,
+   "architecture": {
+    "modality": "text+image->text+audio"
+   },
+   "pricing": {
+    "prompt": "0",
+    "completion": "0"
+   }
+  },
+  {
+   "id": "nvidia/nemotron-3-super-120b-a12b:free",
+   "context_length": 262144,
+   "architecture": {
+    "modality": "text->text"
+   },
+   "pricing": {
+    "prompt": "0",
+    "completion": "0"
+   }
+  },
+  {
+   "id": "openrouter/free",
+   "context_length": 200000,
+   "architecture": {
+    "modality": "text+image->text"
+   },
+   "pricing": {
+    "prompt": "0",
+    "completion": "0"
+   }
+  },
+  {
+   "id": "anthropic/claude-sonnet-5.5",
+   "context_length": 1000000,
+   "architecture": {
+    "modality": "text+image+file->text"
+   },
+   "pricing": {
+    "prompt": "0.000002",
+    "completion": "0.00001"
+   }
+  },
+  {
+   "id": "anthropic/claude-sonnet-5.5:batch",
+   "context_length": 1000000,
+   "architecture": {
+    "modality": "text+image+file->text"
+   },
+   "pricing": {
+    "prompt": "0.000001",
+    "completion": "0.000005"
+   }
+  },
+  {
+   "id": "typesafe/jev-router",
+   "context_length": 1000000,
+   "architecture": {
+    "modality": "text+image+file+audio+video->text"
+   },
+   "pricing": {
+    "prompt": "-1",
+    "completion": "-1"
+   }
+  },
+  {
+   "id": "perceptron/perceptron-mk1.5",
+   "context_length": 36864,
+   "architecture": {
+    "modality": "text+image+audio+video->text"
+   },
+   "pricing": {
+    "prompt": "0.00000015",
+    "completion": "0.0000015"
+   }
+  },
+  {
+   "id": "fireworks/ember-1",
+   "context_length": 1048576,
+   "architecture": {
+    "modality": "text+image->text"
+   },
+   "pricing": {
+    "prompt": "0.000003",
+    "completion": "0.000015"
+   }
+  },
+  {
+   "id": "z-ai/glm-5.3-prime",
+   "context_length": 1000000,
+   "architecture": {
+    "modality": "text->text"
+   },
+   "pricing": {
+    "prompt": "0.0000028",
+    "completion": "0.0000088"
+   }
+  }
+ ]
+}

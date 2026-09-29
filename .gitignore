@@ -1,0 +1,21 @@
+# Secrets: the OpenRouter key lives in .env, never commit it.
+.env
+.env.*
+!.env.example
+
+# Build output
+bin/
+obj/
+/server/
+TestResults/
+*.user
+.vs/
+.vscode/
+.idea/
+
+# Written while the server / demo runs (transcripts, raw LLM logs, probe results)
+llmbots-logs/
+
+# OS junk
+.DS_Store
+Thumbs.db
