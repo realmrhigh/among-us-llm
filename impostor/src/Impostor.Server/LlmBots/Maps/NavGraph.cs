@@ -35,6 +35,11 @@ namespace Impostor.Server.LlmBots.Maps
 
         public List<NavNode> Nodes { get; } = new();
 
+        /// <summary>
+        ///     Gets or sets the wall data of the ship. When present, routes are found on it instead of on the waypoints.
+        /// </summary>
+        public CollisionGrid? Collision { get; set; }
+
         public NavNode Add(string id, string room, Vector2 position)
         {
             var node = new NavNode(Nodes.Count, id, room, position);
@@ -82,6 +87,12 @@ namespace Impostor.Server.LlmBots.Maps
         /// </summary>
         public List<Vector2> FindPath(Vector2 from, Vector2 to)
         {
+            var walled = Collision?.FindPath(from, to);
+            if (walled != null)
+            {
+                return walled;
+            }
+
             var start = Nearest(from);
             var goal = Nearest(to);
             var route = new List<Vector2> { from };

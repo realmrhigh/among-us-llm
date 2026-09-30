@@ -228,6 +228,27 @@ namespace Impostor.Server.LlmBots.Maps
                 map.EmergencyButton = map.Nav.Nearest(map.MeetingCenter).Position;
             }
 
+            // Wall data is only used where it has been checked against the map's consoles, doors and vents: the Skeld
+            // and Dleks. The other ships have several floors or a different origin and still need work.
+            if (type is MapTypes.Skeld or MapTypes.Dleks)
+            {
+                map.Nav.Collision = CollisionGrid.TryLoad(
+                    type == MapTypes.Dleks ? "april" : "skeld",
+                    map.Tasks.Values.SelectMany(t => t.Consoles.Select(c => c.Position))
+                        .Concat(map.Doors.Select(d => d.Position))
+                        .Concat(map.Vents.Select(v => v.Position))
+                        .Append(map.SpawnCenter)
+                        .Append(map.MeetingCenter)
+                        .ToList());
+            }
+
+            if (type is MapTypes.Skeld or MapTypes.Dleks)
+            {
+                Console.WriteLine(map.Nav.Collision != null
+                    ? $"[LlmBots] {map.Name}: bots avoid walls (wall data loaded)"
+                    : $"[LlmBots] {map.Name}: no wall data (run tools/extract_collision.py), bots use plain waypoints");
+            }
+
             return map;
         }
 

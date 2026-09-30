@@ -137,6 +137,9 @@ The control API only accepts requests from the server machine itself, unless you
 - **Meetings**: an opening statement, a reaction to what others said, and a final vote. Crewmates only state what they
   saw. Impostors deflect and bluff but never confess and never vote a teammate. A human's chat lines are part of what
   they read, so they answer your accusations.
+- **Walls.** With wall data, bots plan routes around walls and furniture on The Skeld and Dleks. The data is read from your own
+  game install and is not part of this repository: run `pip install UnityPy` then `python tools/extract_collision.py` once
+  (it writes the git-ignored `collision-data/` folder). Without it, bots fall back to the hand made waypoint graph and may cut corners.
 - Not implemented: bots never use vents and only start reactor/O2 sabotages; they ignore lights, comms and doors; no shapeshifter/scientist/engineer roles, Hide & Seek, or mods.
 
 ---------------------------------------------------------------------------------------------------

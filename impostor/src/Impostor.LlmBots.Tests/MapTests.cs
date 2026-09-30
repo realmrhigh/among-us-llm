@@ -61,6 +61,7 @@ namespace Impostor.LlmBots.Tests
             var map = BotMap.Get(MapTypes.Skeld);
             var stops = map.Tasks.Values.SelectMany(t => t.Consoles).Select(c => c.Position).Distinct().ToList();
             var worst = 0f;
+            var grid = map.Nav.Collision;
             foreach (var a in stops)
             {
                 foreach (var b in stops)
@@ -69,12 +70,24 @@ namespace Impostor.LlmBots.Tests
                     for (var i = 1; i < path.Count; i++)
                     {
                         worst = Math.Max(worst, Vector2.Distance(path[i - 1], path[i]));
+
+                        // With real wall data the check is exact: a leg (other than the hops onto the exact start and end
+                        // spots, which can sit inside furniture) must not touch a wall.
+                        if (grid != null && i > 1 && i < path.Count - 1)
+                        {
+                            Assert.True(grid.HasClearLine(path[i - 1], path[i]), $"leg {path[i - 1]} -> {path[i]} crosses a wall");
+                        }
                     }
                 }
             }
 
             _output.WriteLine($"longest straight segment: {worst:0.0}");
-            Assert.True(worst < 12f, "a route makes a straight jump that is too long, so it would cut through rooms");
+
+            // Without wall data the waypoints are all there is: a long jump then means a route cuts through rooms.
+            if (grid == null)
+            {
+                Assert.True(worst < 12f, "a route makes a straight jump that is too long, so it would cut through rooms");
+            }
         }
 
         [Fact]

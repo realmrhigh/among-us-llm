@@ -12,7 +12,8 @@ namespace Impostor.Server.LlmBots
     /// </summary>
     internal sealed partial class BotAgent
     {
-        private const float LobbyRadius = 0.8f;
+        // Nothing checks walkability in the lobby, so stay close enough to the spawn spot not to clip the dropship walls.
+        private const float LobbyRadius = 0.25f;
 
         private Vector2? _lobbyHome;
         private Vector2 _lobbyPos;

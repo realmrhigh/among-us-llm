@@ -19,3 +19,6 @@ llmbots-logs/
 # OS junk
 .DS_Store
 Thumbs.db
+
+# Wall geometry extracted from a local Among Us install (tools/extract_collision.py); derived from game assets, not redistributed
+collision-data/
