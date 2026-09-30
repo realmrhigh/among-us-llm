@@ -76,12 +76,14 @@ namespace Impostor.LlmBots.Tests
                 Assert.True(await sim.WaitUntilAsync(() => sim.Host.GamesFinished == round, TimeSpan.FromSeconds(150)), $"game {round} should end");
                 _output.WriteLine($"ROUND {round} RESULT {sim.Host.LastResult}");
 
-                // Everybody goes back to the lobby: players are spawned again and the game is open for a new round.
+                // Everybody goes back to the lobby: players are spawned again, every bot has its name back (a stale character left over
+                // from the last game once made bots ask for their name on an object the host no longer had, so they showed as ???)
+                // and the game is open for a new round.
                 var back = await sim.WaitUntilAsync(
                     () =>
                     {
                         var g = sim.Host.Game;
-                        return g != null && g.GameState == GameStates.NotStarted && g.PlayerCount == 5 && g.Players.All(p => p.Character?.PlayerInfo != null && p.Limbo == Impostor.Api.Net.LimboStates.NotLimbo);
+                        return g != null && g.GameState == GameStates.NotStarted && g.PlayerCount == 5 && g.Players.All(p => p.Character?.PlayerInfo != null && p.Limbo == Impostor.Api.Net.LimboStates.NotLimbo && p.Character.PlayerInfo.PlayerName == p.Client.Name);
                     },
                     TimeSpan.FromSeconds(20));
                 if (!back)

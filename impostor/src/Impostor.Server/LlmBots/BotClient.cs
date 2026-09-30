@@ -365,6 +365,33 @@ namespace Impostor.Server.LlmBots
             }
         }
 
+        /// <summary>
+        ///     Despawns our own character objects, as a real client does when it leaves the game over screen. Without this the
+        ///     server keeps the old character, and after rejoining the bot would mistake it for its new one.
+        /// </summary>
+        /// <returns>The net id of the character that was removed, or null when there was none.</returns>
+        public async ValueTask<uint?> DespawnMineAsync()
+        {
+            var me = Me;
+            if (me == null)
+            {
+                return null;
+            }
+
+            var ids = new[] { me.NetId, me.Physics.NetId, me.NetworkTransform.NetId };
+            await SendGameDataAsync(w =>
+            {
+                foreach (var id in ids)
+                {
+                    w.StartMessage(GameDataTag.DespawnFlag);
+                    w.WritePacked(id);
+                    w.EndMessage();
+                }
+            });
+
+            return me.NetId;
+        }
+
         public ValueTask SendGameDataAsync(Action<IMessageWriter> inner, int? toClient = null)
         {
             var code = Code;

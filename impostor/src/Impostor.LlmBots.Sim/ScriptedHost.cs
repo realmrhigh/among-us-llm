@@ -878,7 +878,9 @@ namespace Impostor.LlmBots.Sim
                 w.EndMessage();
             });
 
-            var netIds = _players.Values.SelectMany(p => new[] { p.ControlNetId, p.PhysicsNetId, p.CntNetId }).Concat(_globalNetIds).Concat(new[] { _meetingNetId }).Where(n => n != 0).ToList();
+            // A real host client only removes its own character and the shared objects; every other client removes its own
+            // character itself when it leaves the game over screen. Doing the same here keeps the tests honest.
+            var netIds = _players.Values.Where(p => p.ClientId == Client.ClientId).SelectMany(p => new[] { p.ControlNetId, p.PhysicsNetId, p.CntNetId }).Concat(_globalNetIds).Concat(new[] { _meetingNetId }).Where(n => n != 0).ToList();
             await Client.SendGameDataAsync(w =>
             {
                 foreach (var n in netIds)

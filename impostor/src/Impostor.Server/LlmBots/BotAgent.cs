@@ -35,6 +35,7 @@ namespace Impostor.Server.LlmBots
         private DateTime? _readyAt;
         private DateTime? _rejoinAt;
         private bool _waitingForHost;
+        private uint? _staleControlId;
         private DateTime? _greetAt;
         private bool _sceneWanted;
 
@@ -146,7 +147,7 @@ namespace Impostor.Server.LlmBots
                 await Client.SendSceneChangeAsync();
             }
 
-            if (!_identitySent && Client.Me != null)
+            if (!_identitySent && Client.Me != null && Client.Me.NetId != _staleControlId)
             {
                 _identitySent = true;
                 var color = Client.Client?.PreviousColor is { } previous && (int)previous >= 0 ? previous : (ColorType)_rng.Next(0, Enum.GetValues<ColorType>().Length);
@@ -193,6 +194,7 @@ namespace Impostor.Server.LlmBots
                     else
                     {
                         _rejoinAt = null;
+                        _staleControlId = await Client.DespawnMineAsync() ?? Client.Me?.NetId;
                         await Client.JoinAsync(Client.Code.Value);
                     }
                 }
