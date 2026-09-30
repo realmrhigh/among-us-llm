@@ -213,9 +213,10 @@ namespace Impostor.Server.LlmBots
 
             var version = game.Host.Client.GameVersion;
             var added = 0;
+            var models = await ChooseModelsAsync(game, allowed);
             for (var i = 0; i < allowed; i++)
             {
-                var name = PickName(game);
+                var name = models != null ? models.Value.Names[i] : PickName(game);
                 var client = new BotClient(_env, name);
                 if (!await client.ConnectAsync(version))
                 {
@@ -225,6 +226,7 @@ namespace Impostor.Server.LlmBots
 
                 var seed = Interlocked.Increment(ref _seed) + Environment.TickCount;
                 var agent = new BotAgent(_env, client, seed);
+                agent.PreferredModel = models?.Models[i];
                 agent.Brain = CreateBrain(agent, seed);
                 agent.Transcript = Log;
 
@@ -431,6 +433,64 @@ namespace Impostor.Server.LlmBots
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 _logger.LogDebug("Could not write the LLM log: {Message}", ex.Message);
+            }
+        }
+
+        /// <summary>
+        ///     Picks a working language model for each new bot and names the bot after it. Returns null (plain names are used)
+        ///     when no model is available or the feature is off.
+        /// </summary>
+        private async Task<(IReadOnlyList<string> Models, IReadOnlyList<string> Names)?> ChooseModelsAsync(Game game, int count)
+        {
+            var client = Llm;
+            if (!_env.Config.NameBotsAfterModels || client == null || !client.Available)
+            {
+                return null;
+            }
+
+            try
+            {
+                using var timeout = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
+                timeout.CancelAfter(TimeSpan.FromSeconds(8));
+                var working = await client.WorkingModelsAsync(timeout.Token);
+                if (working.Count == 0)
+                {
+                    return null;
+                }
+
+                var inUse = new HashSet<string>();
+                if (_bots.TryGetValue(game.Code.Value, out var existing))
+                {
+                    foreach (var b in Copy(existing))
+                    {
+                        if (b.Agent.PreferredModel != null)
+                        {
+                            inUse.Add(b.Agent.PreferredModel);
+                        }
+                    }
+                }
+
+                // Every bot gets a different model while there are enough of them, then models are shared.
+                var order = working.Where(m => !inUse.Contains(m)).Concat(working.Where(inUse.Contains)).ToList();
+                var chosen = Enumerable.Range(0, count).Select(i => order[i % order.Count]).ToList();
+
+                var taken = new HashSet<string>(
+                    game.GameNet.GameData.Players.Values.Select(p => p.PlayerName).Concat(game.Players.Select(p => p.Client.Name)),
+                    StringComparer.OrdinalIgnoreCase);
+                foreach (var list in _bots.Values)
+                {
+                    foreach (var b in Copy(list))
+                    {
+                        taken.Add(b.Client.Name);
+                    }
+                }
+
+                return (chosen, ModelNames.Assign(chosen, taken));
+            }
+            catch (Exception ex) when (ex is OperationCanceledException or LlmUnavailableException or System.Net.Http.HttpRequestException)
+            {
+                _logger.LogDebug("Could not pick models for the bots ({Message}), using plain names", ex.Message);
+                return null;
             }
         }
 

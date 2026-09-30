@@ -45,7 +45,7 @@ namespace Impostor.Server.LlmBots.Brain
 
             try
             {
-                var reply = await _client.CompleteAsync(PromptBuilder.SystemPrompt, user, important, maxWait, cancellationToken, accept: DecisionParser.LooksUsable);
+                var reply = await _client.CompleteAsync(PromptBuilder.SystemPrompt, user, important, maxWait, cancellationToken, accept: DecisionParser.LooksUsable, preferredModel: ctx.PreferredModel);
                 _rawLog?.Invoke($"=== {ctx.Me.Name} {ctx.Stage} via {reply.Model} ({reply.LatencyMs} ms)\n--- prompt\n{user}\n--- answer\n{reply.Text}\n");
 
                 var parsed = DecisionParser.Parse(reply.Text, ctx, "llm:" + reply.Model);

@@ -12,6 +12,8 @@ How the game works: Crewmates do tasks around the ship. One or more hidden Impos
 
 Chat style: very short lines (max 90 characters), casual, lowercase is fine, no emojis, no markdown, use player names. Say things a real player would type. Do not repeat what has already been said. Do not describe your reasoning in the chat. Talk like a person: never quote exact timestamps such as ""20s ago"", say things like ""just before the meeting"" or ""a bit earlier"" instead, and do not recite your whole route.
 
+Conversation: this is a live chat, not a speech. Read the latest messages and respond to them directly: answer questions asked of you, use the name of the person you are replying to, agree or disagree and say why, or ask a pointed follow-up. React to what people just said instead of repeating facts that were already shared. Players marked [HUMAN] are real people typing slowly: take what they say seriously and answer them first. If the meeting reason says someone called an emergency meeting, no body was found, so do not ask where the body is.
+
 Truthfulness: a Crewmate only states things that are in the notes below and may reason from them. An Impostor may lie and deflect, but must stay consistent with public facts (who called the meeting, where the body is) and must never reveal or confess being an Impostor, and never accuse teammates.
 
 Reply with ONLY one JSON object, nothing else:
@@ -38,7 +40,7 @@ Reply with ONLY one JSON object, nothing else:
             b.AppendLine("PLAYERS:");
             foreach (var p in ctx.Players)
             {
-                b.AppendLine($"- {p.Name} ({p.Color}){(p.IsMe ? " [you]" : string.Empty)}{(p.Alive ? string.Empty : " [DEAD]")}");
+                b.AppendLine($"- {p.Name} ({p.Color}){(p.IsMe ? " [you]" : string.Empty)}{(p.IsHuman ? " [HUMAN]" : string.Empty)}{(p.Alive ? string.Empty : " [DEAD]")}");
             }
 
             b.AppendLine();
@@ -113,8 +115,8 @@ Reply with ONLY one JSON object, nothing else:
             b.AppendLine();
             b.AppendLine(ctx.Stage switch
             {
-                MeetingStage.Opening => $"YOUR TURN: say your opening line(s), at most {ctx.MaxLines}. Share what is useful (where you were, who you saw, anything suspicious) or ask a pointed question. Set your current vote.",
-                MeetingStage.Reply => $"YOUR TURN: react to the chat, at most {ctx.MaxLines} short line(s). Answer anyone who accused you, back up or challenge claims, ask questions. Update your vote.",
+                MeetingStage.Opening => $"YOUR TURN: say your opening line(s), at most {ctx.MaxLines} and keep them casual. Share one or two useful things (roughly where you were, who you saw, anything suspicious) or ask a pointed question. Set your current vote.",
+                MeetingStage.Reply => "YOUR TURN: reply with ONE short line to the newest messages in the chat (address the person by name). Answer anyone who accused you or asked you something, back up or challenge a claim, or ask a follow-up. Do not repeat facts already said. Update your vote.",
                 _ => "YOUR TURN: voting closes soon. You may add one last short line. Give your FINAL vote.",
             });
 

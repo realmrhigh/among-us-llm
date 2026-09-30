@@ -11,7 +11,7 @@ namespace Impostor.Server.LlmBots.Brain
         FinalVote,
     }
 
-    internal sealed record PlayerBrief(byte Id, string Name, string Color, bool Alive, bool IsMe, bool IsTeammate);
+    internal sealed record PlayerBrief(byte Id, string Name, string Color, bool Alive, bool IsMe, bool IsTeammate, bool IsHuman = false);
 
     /// <summary>
     ///     Everything a brain gets to see when it has to talk or vote in a meeting.
@@ -68,6 +68,9 @@ namespace Impostor.Server.LlmBots.Brain
         public int MaxLines { get; set; } = 2;
 
         public string Persona { get; set; } = string.Empty;
+
+        /// <summary>Gets or sets the model this bot is named after; it is asked first.</summary>
+        public string? PreferredModel { get; set; }
 
         public IEnumerable<PlayerBrief> Candidates => Players.Where(p => p.Alive && !p.IsMe);
 

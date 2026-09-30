@@ -30,7 +30,7 @@
     "ConnectionTimeout": 2500
   },
   "Compatibility": {
-    "AllowFutureGameVersions": false,
+    "AllowFutureGameVersions": true,
     "AllowHostAuthority": false,
     "AllowVersionMixing": false
   },
@@ -44,6 +44,7 @@
     "MaxRequestsPerMinute": 16,
     "ChatCommands": true,
     "MaxBots": 12,
+    "ChatPace": 3,
     "WriteTranscripts": true
   },
   "Serilog": {

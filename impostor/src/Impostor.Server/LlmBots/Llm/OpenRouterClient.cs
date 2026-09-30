@@ -128,8 +128,9 @@ namespace Impostor.Server.LlmBots.Llm
         /// <param name="ct">Cancellation.</param>
         /// <param name="maxTokens">Answer size limit.</param>
         /// <param name="accept">Optional check of the answer text; a model whose answer fails it is skipped.</param>
+        /// <param name="preferredModel">A model to ask first while it is usable (the one a bot is named after).</param>
         /// <returns>The reply and the model that produced it.</returns>
-        public async Task<LlmReply> CompleteAsync(string system, string user, bool important, TimeSpan maxWait, CancellationToken ct, int maxTokens = 350, Func<string, bool>? accept = null)
+        public async Task<LlmReply> CompleteAsync(string system, string user, bool important, TimeSpan maxWait, CancellationToken ct, int maxTokens = 350, Func<string, bool>? accept = null, string? preferredModel = null)
         {
             if (!HasKey)
             {
@@ -148,7 +149,8 @@ namespace Impostor.Server.LlmBots.Llm
 
             for (var attempt = 0; attempt < 4; attempt++)
             {
-                var model = Ordered(models).FirstOrDefault(m => !tried.Contains(m));
+                var usable = Ordered(models).Where(m => !tried.Contains(m)).ToList();
+                var model = preferredModel != null && usable.Contains(preferredModel) ? preferredModel : usable.FirstOrDefault();
                 if (model == null)
                 {
                     break;
@@ -403,6 +405,11 @@ namespace Impostor.Server.LlmBots.Llm
 
             return "key info endpoint not available";
         }
+
+        /// <summary>
+        ///     Gets the models that can be asked right now (not dead, not resting), best first.
+        /// </summary>
+        public async Task<IReadOnlyList<string>> WorkingModelsAsync(CancellationToken ct) => Ordered(await GetModelsAsync(ct)).ToList();
 
         public async Task<IReadOnlyList<string>> GetModelsAsync(CancellationToken ct)
         {

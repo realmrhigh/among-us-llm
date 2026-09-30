@@ -82,7 +82,12 @@ namespace Impostor.Server.LlmBots
         /// <summary>
         ///     Gets or sets the number of chat lines a bot may say per meeting at most.
         /// </summary>
-        public int MaxLinesPerMeeting { get; set; } = 3;
+        public int MaxLinesPerMeeting { get; set; } = 6;
+
+        /// <summary>
+        ///     Gets or sets how much slower bots chat: 1 is the base pace, 2 doubles the pause before the first line and between lines.
+        /// </summary>
+        public double ChatPace { get; set; } = 1.0;
 
         /// <summary>
         ///     Gets or sets how long, in seconds, the meeting intro animation lasts before discussion starts.
@@ -132,5 +137,11 @@ namespace Impostor.Server.LlmBots
         {
             "Ada", "Bolt", "Cleo", "Dax", "Echo", "Fable", "Gizmo", "Hex", "Iris", "Juno", "Kilo", "Luna",
         };
+
+        /// <summary>
+        ///     Gets or sets a value indicating whether bots are named after the language model behind them (for example
+        ///     "Nemotron" or "Gemma") when a model is available. Otherwise <see cref="BotNames"/> is used.
+        /// </summary>
+        public bool NameBotsAfterModels { get; set; } = true;
     }
 }

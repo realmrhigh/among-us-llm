@@ -34,6 +34,7 @@ namespace Impostor.Server.LlmBots
         private bool _identitySent;
         private DateTime? _readyAt;
         private DateTime? _rejoinAt;
+        private bool _waitingForHost;
         private DateTime? _greetAt;
         private bool _sceneWanted;
 
@@ -59,6 +60,9 @@ namespace Impostor.Server.LlmBots
         public bool ManagedByHost { get; set; }
 
         public string Persona { get; }
+
+        /// <summary>Gets or sets the language model this bot is named after; it is asked first in meetings.</summary>
+        public string? PreferredModel { get; set; }
 
         public bool Finished { get; private set; }
 
@@ -171,8 +175,27 @@ namespace Impostor.Server.LlmBots
 
             if (_rejoinAt != null && now >= _rejoinAt && Client.Code != null)
             {
-                _rejoinAt = null;
-                await Client.JoinAsync(Client.Code.Value);
+                // Like real players, wait on the game over screen until the human host has gone back to the lobby:
+                // bots that rejoin first make the server announce them to a client that is still on the end screen.
+                var humanHost = game.Host?.Client is Impostor.Server.Net.Client { Connection: not BotConnection };
+                if (game.GameState == Impostor.Api.Innersloth.GameStates.Ended && humanHost)
+                {
+                    _waitingForHost = true;
+                }
+                else
+                {
+                    if (_waitingForHost)
+                    {
+                        // The host is back: come in a moment later, not all in the same instant.
+                        _waitingForHost = false;
+                        _rejoinAt = now + TimeSpan.FromSeconds(1 + (_rng.NextDouble() * 2.5));
+                    }
+                    else
+                    {
+                        _rejoinAt = null;
+                        await Client.JoinAsync(Client.Code.Value);
+                    }
+                }
             }
 
             await TickLobbyAsync(game, now);

@@ -63,14 +63,20 @@ namespace Impostor.Server.LlmBots
                 StartThinking(run, game, me, info, options, MeetingStage.Opening, now);
             }
 
-            if (!run.ReplyStarted && now >= run.ReplyAt)
+            // Keep the conversation going: after the opening, answer new chat one short line at a time.
+            if (run.OpeningStarted && run.Pending == null && run.Say.Count == 0 && !run.FinalStarted && now >= run.NextTurnAt && now >= run.ReplyAt
+                && now < run.FinalThinkAt && run.Spoken < _env.Config.MaxLinesPerMeeting)
             {
-                run.ReplyStarted = true;
-
-                // Only spend a request when somebody said something that concerns us.
-                if (SomethingToReplyTo(info, run))
+                var relevance = ReplyRelevance(game, info, run);
+                run.ChatConsidered = Memory.Chat.Count;
+                if (relevance == 2 || (relevance == 1 && _rng.NextDouble() < 0.5))
                 {
                     StartThinking(run, game, me, info, options, MeetingStage.Reply, now);
+                    run.NextTurnAt = now + TimeSpan.FromSeconds((3 + (_rng.NextDouble() * 3)) * Math.Max(0.1, _env.Config.ChatPace));
+                }
+                else
+                {
+                    run.NextTurnAt = now + TimeSpan.FromSeconds(1.5 + _rng.NextDouble());
                 }
             }
 
@@ -90,11 +96,11 @@ namespace Impostor.Server.LlmBots
             }
 
             // Talk.
-            if (run.Say.Count > 0 && now >= run.NextSayAt && now < run.Deadline && run.Spoken < _env.Config.MaxLinesPerMeeting)
+            if (run.Say.Count > 0 && !run.VoteCast && now >= run.NextSayAt && now < run.Deadline && run.Spoken < _env.Config.MaxLinesPerMeeting)
             {
                 var line = run.Say.Dequeue();
                 run.Spoken++;
-                run.NextSayAt = now + TimeSpan.FromSeconds(2.5 + (_rng.NextDouble() * 3));
+                run.NextSayAt = now + TimeSpan.FromSeconds((2.5 + (_rng.NextDouble() * 3)) * Math.Max(0.1, _env.Config.ChatPace));
                 Transcript?.Invoke($"[{info.PlayerName}] {line}");
                 await Client.SendChatAsync(line);
             }
@@ -125,7 +131,7 @@ namespace Impostor.Server.LlmBots
             var discussion = Math.Max(0, options.DiscussionTime);
             var voting = Math.Max(5, options.VotingTime);
 
-            var opening = start + TimeSpan.FromSeconds(anim + 0.3 + (_rng.NextDouble() * 2));
+            var opening = start + TimeSpan.FromSeconds(anim + ((0.3 + (_rng.NextDouble() * 2)) * Math.Max(0.1, _env.Config.ChatPace)));
             var deadline = start + TimeSpan.FromSeconds(anim + discussion + voting - 3);
             var voteAt = start + TimeSpan.FromSeconds(anim + discussion + 0.5 + (_rng.NextDouble() * 5));
             if (voteAt > deadline)
@@ -139,7 +145,7 @@ namespace Impostor.Server.LlmBots
                 finalThink = opening + TimeSpan.FromSeconds(1);
             }
 
-            var reply = opening + TimeSpan.FromTicks((finalThink - opening).Ticks / 2);
+            var reply = opening + TimeSpan.FromSeconds(4 * Math.Max(0.1, _env.Config.ChatPace));
 
             _meeting = new MeetingRun
             {
@@ -316,28 +322,53 @@ namespace Impostor.Server.LlmBots
             await Client.CastVoteAsync(choice);
         }
 
-        private bool SomethingToReplyTo(InnerPlayerInfo info, MeetingRun run)
+        private bool IsHumanPlayer(Game game, byte playerId)
         {
-            foreach (var line in Memory.Chat.Skip(run.ChatSeenAtOpening))
+            var info = game.GameNet.GameData.GetPlayerById(playerId);
+            var owner = info?.Controller?.OwnerId;
+            if (owner == null)
             {
-                if (line.SenderId == info.PlayerId)
-                {
-                    continue;
-                }
+                return false;
+            }
 
+            return game.GetClientPlayer(owner.Value)?.Client is Impostor.Server.Net.Client { Connection: not BotConnection };
+        }
+
+        /// <summary>
+        ///     Rates the chat lines that arrived since this bot last looked: 2 = answer them (they name this bot, or are from a
+        ///     human nobody has answered yet), 1 = a chime-in is welcome, 0 = nothing new.
+        /// </summary>
+        private int ReplyRelevance(Game game, InnerPlayerInfo info, MeetingRun run)
+        {
+            var fresh = Memory.Chat.Skip(run.ChatConsidered).Where(l => l.SenderId != info.PlayerId).ToList();
+            if (fresh.Count == 0)
+            {
+                return 0;
+            }
+
+            var name = info.PlayerName.ToLowerInvariant();
+            var color = info.CurrentOutfit.Color.ToString().ToLowerInvariant();
+            var best = 1;
+            foreach (var line in fresh)
+            {
                 var text = line.Text.ToLowerInvariant();
-                if (text.Contains(info.PlayerName.ToLowerInvariant()) || text.Contains(info.CurrentOutfit.Color.ToString().ToLowerInvariant()))
+                if (text.Contains(name) || text.Contains(color))
                 {
-                    return true;
+                    return 2;
                 }
 
-                if (text.Contains("sus") || text.Contains("vent") || text.Contains("saw ") || text.Contains("kill") || text.Contains('?'))
+                if (IsHumanPlayer(game, line.SenderId))
                 {
-                    return true;
+                    // A human spoke: answer, unless another bot already did after them.
+                    var index = Memory.Chat.IndexOf(line);
+                    if (Memory.Chat.Skip(index + 1).All(l => IsHumanPlayer(game, l.SenderId) || l.SenderId == info.PlayerId))
+                    {
+                        return 2;
+                    }
                 }
             }
 
-            return false;
+            return best;
         }
 
         private static string CleanLine(string text)
@@ -379,7 +410,8 @@ namespace Impostor.Server.LlmBots
                     p.CurrentOutfit.Color.ToString(),
                     !p.IsDead && !p.Disconnected,
                     p.PlayerId == info.PlayerId,
-                    info.IsImpostor && p.IsImpostor && p.PlayerId != info.PlayerId))
+                    info.IsImpostor && p.IsImpostor && p.PlayerId != info.PlayerId,
+                    IsHumanPlayer(game, p.PlayerId)))
                 .ToList();
 
             var me = briefs.First(b => b.IsMe);
@@ -458,8 +490,9 @@ namespace Impostor.Server.LlmBots
                 Suspicion = new Dictionary<byte, double>(Memory.Suspicion),
                 Caught = new HashSet<byte>(Memory.CaughtImpostors),
                 SecondsLeft = Math.Max(0, (run.Deadline - now).TotalSeconds),
-                MaxLines = Math.Max(1, _env.Config.MaxLinesPerMeeting - run.Spoken),
+                MaxLines = Math.Max(1, stage switch { MeetingStage.Opening => Math.Min(2, _env.Config.MaxLinesPerMeeting - run.Spoken), MeetingStage.Reply => 1, _ => 1 }),
                 Persona = Persona,
+                PreferredModel = PreferredModel,
             };
         }
 
@@ -501,6 +534,8 @@ namespace Impostor.Server.LlmBots
 
             public int ChatSeenAtDecision { get; set; }
 
+            public int ChatConsidered { get; set; }
+
             public Task<MeetingDecision>? Pending { get; set; }
 
             public MeetingStage PendingStage { get; set; }
@@ -512,6 +547,8 @@ namespace Impostor.Server.LlmBots
             public HashSet<string> SaidLines { get; } = new();
 
             public DateTime NextSayAt { get; set; }
+
+            public DateTime NextTurnAt { get; set; }
         }
     }
 }
