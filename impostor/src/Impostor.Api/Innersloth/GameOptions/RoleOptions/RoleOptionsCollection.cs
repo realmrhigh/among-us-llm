@@ -35,7 +35,7 @@ public class RoleOptionsCollection
                 RoleTypes.Detective => DetectiveRoleOptions.Deserialize(roleOptionsReader, Version),
                 RoleTypes.Viper => ViperRoleOptions.Deserialize(roleOptionsReader, Version),
                 RoleTypes.Judge => JudgeRoleOptions.Deserialize(roleOptionsReader, Version),
-                _ => throw new ArgumentOutOfRangeException(nameof(roleType), roleType, null),
+                _ => UnknownRoleOptions.Deserialize(roleOptionsReader, roleType),
             };
 
             Roles[roleType] = new RoleData(roleType, roleOptions, roleRate);

@@ -12,7 +12,7 @@ namespace Impostor.Server.Net.State
     {
         internal IEnumerable<InnerNetObject> AllNetObjects => _allObjects.Values;
 
-        internal InnerMeetingHud? ActiveMeeting => _allObjects.Values.OfType<InnerMeetingHud>().FirstOrDefault();
+        internal InnerMeetingHud? ActiveMeeting => _allObjects.Values.OfType<InnerMeetingHud>().FirstOrDefault(m => !m.IsOver);
 
         internal uint NextFreeNetId() => System.Threading.Interlocked.Increment(ref _nextNetId);
     }

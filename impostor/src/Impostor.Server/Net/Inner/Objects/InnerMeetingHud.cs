@@ -141,6 +141,7 @@ namespace Impostor.Server.Net.Inner.Objects
 
                     Rpc22Close.Deserialize(reader);
                     _judgeOverrules.Clear();
+                    MarkHostClosed();
                     break;
                 }
 
@@ -150,6 +151,8 @@ namespace Impostor.Server.Net.Inner.Objects
                     {
                         return false;
                     }
+
+                    MarkVotingComplete();
 
                     if (sender.Client.GameVersion >= JudgeMinVersion)
                     {
