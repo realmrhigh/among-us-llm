@@ -11,6 +11,23 @@ namespace Impostor.Server.LlmBots.Maps
     ///     A walkability grid built from the wall / obstacle shapes of a ship (see tools/extract_collision.py).
     ///     Walls are widened by the size of a player so a route that stays on free cells never clips a wall.
     /// </summary>
+    /// <summary>
+    ///     How well wall data fits the points of its ship.
+    /// </summary>
+    /// <param name="Points">Points checked.</param>
+    /// <param name="OnFreeCell">Points standing on a free cell (not in a wall).</param>
+    /// <param name="InKeptArea">Points that have a free cell close by in a kept area.</param>
+    /// <param name="KeptAreas">Separate free areas kept (more than one on ships with ladders or platforms).</param>
+    /// <param name="FreeCells">Free cells in total.</param>
+    /// <param name="AllAreas">Separate free areas before the unreachable ones were dropped.</param>
+    internal sealed record CollisionQuality(int Points, int OnFreeCell, int InKeptArea, int KeptAreas, int FreeCells, int AllAreas)
+    {
+        public double Fit => Points == 0 ? 0 : Math.Min(OnFreeCell, InKeptArea) / (double)Points;
+
+        public override string ToString() =>
+            $"{OnFreeCell}/{Points} points on free ground, {InKeptArea}/{Points} in a kept area, {KeptAreas} kept area(s) of {AllAreas}, {FreeCells * CollisionGrid.CellSize * CollisionGrid.CellSize:0} square units walkable";
+    }
+
     internal sealed class CollisionGrid
     {
         public const float CellSize = 0.1f;
@@ -61,14 +78,20 @@ namespace Impostor.Server.LlmBots.Maps
         public static CollisionGrid? TryLoad(string ship, IReadOnlyCollection<Vector2> seeds)
         {
             var file = Find(ship);
-            if (file == null)
-            {
-                return null;
-            }
+            return file == null ? null : TryLoadFile(file, seeds);
+        }
 
+        /// <summary>
+        ///     Loads wall data from a specific file, or returns null when it is missing or unreadable.
+        /// </summary>
+        /// <param name="file">The JSON file.</param>
+        /// <param name="seeds">Points that are standing places inside the ship.</param>
+        /// <returns>The grid or null.</returns>
+        internal static CollisionGrid? TryLoadFile(string file, IReadOnlyCollection<Vector2> seeds)
+        {
             try
             {
-                using var doc = JsonDocument.Parse(File.ReadAllBytes(file));
+                using var doc = JsonDocument.Parse(File.ReadAllText(file));
                 var segments = new List<(Vector2, Vector2)>();
                 var min = new Vector2(float.MaxValue);
                 var max = new Vector2(float.MinValue);
@@ -168,14 +191,88 @@ namespace Impostor.Server.LlmBots.Maps
         }
 
         /// <summary>
-        ///     Blocks every free area except the one most of the given points (consoles, doors, spawn...) are in. That
-        ///     removes the space outside the ship and the sealed inside of tables, which would otherwise be places a
-        ///     route could start or end in.
+        ///     Gets how well the wall data fits the given points (consoles, doors, vents, spawn...) of the same ship.
+        ///     A wrong origin, scale or mirroring shows up as points inside walls or outside the kept areas.
+        /// </summary>
+        /// <param name="points">The points that should all be standing places inside the ship.</param>
+        /// <returns>The counts, see <see cref="CollisionQuality"/>.</returns>
+        public CollisionQuality Measure(IReadOnlyCollection<Vector2> points)
+        {
+            var label = Label(out var count);
+            var onFree = 0;
+            var inKept = 0;
+            var regions = new HashSet<int>();
+            foreach (var point in points)
+            {
+                var (x, y) = ToCell(point);
+                if (InBounds(x, y) && !_blocked[(y * _width) + x])
+                {
+                    onFree++;
+                }
+
+                var cell = NearestFree(point);
+                if (cell >= 0)
+                {
+                    inKept++;
+                    regions.Add(label[cell]);
+                }
+            }
+
+            var free = 0;
+            var kept = new HashSet<int>();
+            for (var i = 0; i < _blocked.Length; i++)
+            {
+                if (!_blocked[i])
+                {
+                    free++;
+                    kept.Add(label[i]);
+                }
+            }
+
+            return new CollisionQuality(points.Count, onFree, inKept, kept.Count, free, count);
+        }
+
+        /// <summary>
+        ///     Blocks the free areas that no point (console, door, vent, spawn...) is in: the space outside the ship and
+        ///     the sealed inside of tables, which would otherwise be places a route could start or end in. Ships with
+        ///     separate parts (ladders, platforms) keep every part that holds a fair share of the points; a stray point
+        ///     outside the ship does not keep the outside.
         /// </summary>
         private void KeepSeededRegion(IReadOnlyCollection<Vector2> seeds)
         {
+            var label = Label(out _);
+            var votes = new Dictionary<int, int>();
+            foreach (var seed in seeds)
+            {
+                var cell = NearestFree(seed);
+                if (cell >= 0)
+                {
+                    votes[label[cell]] = votes.GetValueOrDefault(label[cell]) + 1;
+                }
+            }
+
+            if (votes.Count == 0)
+            {
+                return;
+            }
+
+            var main = votes.OrderByDescending(v => v.Value).First().Key;
+            var minimum = Math.Max(3, seeds.Count / 10);
+            var keep = new HashSet<int>(votes.Where(v => v.Key == main || v.Value >= minimum).Select(v => v.Key));
+            for (var i = 0; i < _blocked.Length; i++)
+            {
+                if (!keep.Contains(label[i]))
+                {
+                    _blocked[i] = true;
+                }
+            }
+        }
+
+        // Numbers the connected free areas (0 = blocked).
+        private int[] Label(out int count)
+        {
             var label = new int[_blocked.Length];
-            var count = 0;
+            count = 0;
             var queue = new Queue<int>();
             for (var i = 0; i < _blocked.Length; i++)
             {
@@ -209,29 +306,7 @@ namespace Impostor.Server.LlmBots.Maps
                 }
             }
 
-            var votes = new Dictionary<int, int>();
-            foreach (var seed in seeds)
-            {
-                var cell = NearestFree(seed);
-                if (cell >= 0)
-                {
-                    votes[label[cell]] = votes.GetValueOrDefault(label[cell]) + 1;
-                }
-            }
-
-            if (votes.Count == 0)
-            {
-                return;
-            }
-
-            var keep = votes.OrderByDescending(v => v.Value).First().Key;
-            for (var i = 0; i < _blocked.Length; i++)
-            {
-                if (label[i] != keep)
-                {
-                    _blocked[i] = true;
-                }
-            }
+            return label;
         }
 
         private static string? Find(string ship)

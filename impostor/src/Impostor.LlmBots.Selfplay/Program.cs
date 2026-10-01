@@ -18,8 +18,13 @@ using Microsoft.Extensions.Logging;
 var options = Args.Parse(args);
 if (options.Help)
 {
-    Console.WriteLine("usage: Selfplay [--players 8] [--games 2] [--speed 4] [--map skeld] [--llm off|mock|openrouter] [--impostors 1] [--seed 1] [--verbose] [--web 22123] | --probe [--models a,b] [--top 6] [--rounds 1]");
+    Console.WriteLine("usage: Selfplay [--players 8] [--games 2] [--speed 4] [--map skeld] [--llm off|mock|openrouter] [--impostors 1] [--seed 1] [--verbose] [--web 22123] | --probe [--models a,b] [--top 6] [--rounds 1] | --checkmaps");
     return 0;
+}
+
+if (options.CheckMaps)
+{
+    return CheckMaps.Run();
 }
 
 if (options.Raw)
@@ -235,6 +240,8 @@ internal sealed class Args
 
     public string[] RawVariants { get; private set; } = new[] { "base" };
 
+    public bool CheckMaps { get; private set; }
+
     public string[] ProbeModels { get; private set; } = System.Array.Empty<string>();
 
     public int ProbeTop { get; private set; } = 6;
@@ -258,6 +265,7 @@ internal sealed class Args
                 case "--verbose": a.Verbose = true; break;
                 case "--help": a.Help = true; break;
                 case "--probe": a.Probe = true; break;
+                case "--checkmaps": a.CheckMaps = true; break;
                 case "--raw": a.Raw = true; break;
                 case "--variants": a.RawVariants = Next().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                 case "--models": a.ProbeModels = Next().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;

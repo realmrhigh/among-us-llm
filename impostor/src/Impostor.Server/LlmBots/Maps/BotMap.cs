@@ -24,6 +24,8 @@ namespace Impostor.Server.LlmBots.Maps
     /// </summary>
     internal sealed class BotMap
     {
+        private const double MinimumFit = 0.9;
+
         private static readonly ConcurrentDictionary<MapTypes, BotMap> Cache = new();
         private static readonly Regex CamelCase = new("(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", RegexOptions.Compiled);
 
@@ -60,6 +62,9 @@ namespace Impostor.Server.LlmBots.Maps
             _ => Type.ToString(),
         };
 
+        /// <summary>Gets a one line description of whether and how well wall data is used.</summary>
+        public string CollisionStatus { get; private set; } = "not checked";
+
         public NavGraph Nav { get; private set; }
 
         public IReadOnlyDictionary<int, TaskSpec> Tasks { get; private set; }
@@ -79,6 +84,18 @@ namespace Impostor.Server.LlmBots.Maps
         public bool HasHandmadeGraph { get; private set; }
 
         public IEnumerable<string> Rooms => Nav.Nodes.Select(n => n.Room).Where(r => !IsHallway(r)).Distinct();
+
+        /// <summary>
+        ///     Gets the name of the wall data file (collision-data/NAME.json) of a map.
+        /// </summary>
+        /// <param name="type">The map.</param>
+        /// <returns>The file name without extension.</returns>
+        internal static string ShipFile(MapTypes type) => type switch
+        {
+            MapTypes.Dleks => "april",
+            MapTypes.MiraHQ => "mira",
+            _ => type.ToString().ToLowerInvariant(),
+        };
 
         public static BotMap Get(MapTypes type) => Cache.GetOrAdd(type, Load);
 
@@ -228,26 +245,36 @@ namespace Impostor.Server.LlmBots.Maps
                 map.EmergencyButton = map.Nav.Nearest(map.MeetingCenter).Position;
             }
 
-            // Wall data is only used where it has been checked against the map's consoles, doors and vents: the Skeld
-            // and Dleks. The other ships have several floors or a different origin and still need work.
-            if (type is MapTypes.Skeld or MapTypes.Dleks)
+            // Wall data (tools/extract_collision.py) is used on every ship it fits. The Skeld and Dleks were checked by
+            // hand; for the others the data must pass a fit test (consoles, doors, vents and spawn on free ground inside the
+            // kept areas), otherwise a wrong origin or mirroring would trap bots, and they keep the plain waypoints.
+            var seeds = map.Tasks.Values.SelectMany(t => t.Consoles.Select(c => c.Position))
+                .Concat(map.Doors.Select(d => d.Position))
+                .Concat(map.Vents.Select(v => v.Position))
+                .Append(map.SpawnCenter)
+                .Append(map.MeetingCenter)
+                .ToList();
+            var grid = CollisionGrid.TryLoad(ShipFile(type), seeds);
+            if (grid == null)
             {
-                map.Nav.Collision = CollisionGrid.TryLoad(
-                    type == MapTypes.Dleks ? "april" : "skeld",
-                    map.Tasks.Values.SelectMany(t => t.Consoles.Select(c => c.Position))
-                        .Concat(map.Doors.Select(d => d.Position))
-                        .Concat(map.Vents.Select(v => v.Position))
-                        .Append(map.SpawnCenter)
-                        .Append(map.MeetingCenter)
-                        .ToList());
+                map.CollisionStatus = "no wall data (run tools/extract_collision.py), bots use plain waypoints";
+            }
+            else
+            {
+                var quality = grid.Measure(seeds);
+                var trusted = type is MapTypes.Skeld or MapTypes.Dleks;
+                if (trusted || quality.Fit >= MinimumFit)
+                {
+                    map.Nav.Collision = grid;
+                    map.CollisionStatus = "bots avoid walls: " + quality;
+                }
+                else
+                {
+                    map.CollisionStatus = $"wall data does not fit this map ({quality}), bots use plain waypoints";
+                }
             }
 
-            if (type is MapTypes.Skeld or MapTypes.Dleks)
-            {
-                Console.WriteLine(map.Nav.Collision != null
-                    ? $"[LlmBots] {map.Name}: bots avoid walls (wall data loaded)"
-                    : $"[LlmBots] {map.Name}: no wall data (run tools/extract_collision.py), bots use plain waypoints");
-            }
+            Console.WriteLine($"[LlmBots] {map.Name}: {map.CollisionStatus}");
 
             return map;
         }
